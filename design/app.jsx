@@ -3,7 +3,7 @@ const { useState, useEffect, useMemo, useRef } = React;
 const STORAGE_KEY = 'poll_responses_v1';
 const OPTIONS = [
   { id: 'amazing', emoji: '🤩', label: 'Génial !', sub: "J'ai adoré", color: 'amazing' },
-  { id: 'meh',     emoji: '😐', label: 'Rien appris', sub: "Mouais...",    color: 'meh' },
+  { id: 'meh',     emoji: '😐', label: 'Bof',         sub: "Mouais...",    color: 'meh' },
   { id: 'useless', emoji: '😴', label: 'Inutile',     sub: "Perte de temps", color: 'useless' },
 ];
 
