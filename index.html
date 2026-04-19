@@ -1,12 +1,169 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 
 <head>
-    <title>Démo IA</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sondage - Démo IA</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 520px;
+            width: 100%;
+        }
+        h1 { color: #2d3748; margin-bottom: 8px; font-size: 1.8rem; }
+        .subtitle { color: #718096; margin-bottom: 28px; }
+        .question { font-size: 1.1rem; color: #2d3748; margin-bottom: 18px; font-weight: 600; }
+        .options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+        .option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .option:hover { border-color: #667eea; background: #f7fafc; }
+        .option input { accent-color: #667eea; transform: scale(1.2); }
+        .option label { flex: 1; cursor: pointer; color: #4a5568; }
+        button {
+            background: #667eea;
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        button:hover { background: #5568d3; }
+        button.secondary { background: #edf2f7; color: #4a5568; margin-top: 10px; }
+        button.secondary:hover { background: #e2e8f0; }
+        .results { margin-top: 24px; }
+        .result-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+            color: #4a5568;
+        }
+        .bar {
+            flex: 1;
+            height: 10px;
+            background: #edf2f7;
+            border-radius: 5px;
+            margin: 0 12px;
+            overflow: hidden;
+        }
+        .bar-fill { height: 100%; background: #667eea; transition: width 0.4s; }
+        .total { color: #718096; font-size: 0.85rem; margin-top: 16px; text-align: center; }
+        .thanks { color: #38a169; font-weight: 600; margin-bottom: 16px; text-align: center; }
+    </style>
 </head>
 
 <body>
-    Hello Hardis!
+    <div class="card">
+        <h1>Démo IA</h1>
+        <p class="subtitle">Donnez-nous votre avis sur la démo</p>
+
+        <div id="poll">
+            <p class="question">Qu'avez-vous pensé de la démo ?</p>
+            <div class="options">
+                <div class="option">
+                    <input type="radio" id="opt1" name="vote" value="Très intéressant">
+                    <label for="opt1">Très intéressant</label>
+                </div>
+                <div class="option">
+                    <input type="radio" id="opt2" name="vote" value="Intéressant">
+                    <label for="opt2">Intéressant</label>
+                </div>
+                <div class="option">
+                    <input type="radio" id="opt3" name="vote" value="Bof">
+                    <label for="opt3">Bof</label>
+                </div>
+                <div class="option">
+                    <input type="radio" id="opt4" name="vote" value="Pas convaincu">
+                    <label for="opt4">Pas convaincu</label>
+                </div>
+            </div>
+            <button id="submitBtn">Voter</button>
+        </div>
+
+        <div id="resultsView" style="display:none;">
+            <p class="thanks">Merci pour votre vote !</p>
+            <div class="results" id="results"></div>
+            <p class="total" id="total"></p>
+            <button class="secondary" id="resetBtn">Réinitialiser les résultats</button>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'poll-demo-ia-results';
+        const OPTIONS = ['Très intéressant', 'Intéressant', 'Bof', 'Pas convaincu'];
+
+        function loadResults() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            if (!data) return Object.fromEntries(OPTIONS.map(o => [o, 0]));
+            try { return { ...Object.fromEntries(OPTIONS.map(o => [o, 0])), ...JSON.parse(data) }; }
+            catch { return Object.fromEntries(OPTIONS.map(o => [o, 0])); }
+        }
+
+        function saveResults(results) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(results));
+        }
+
+        function renderResults() {
+            const results = loadResults();
+            const total = Object.values(results).reduce((a, b) => a + b, 0);
+            const container = document.getElementById('results');
+            container.innerHTML = '';
+            OPTIONS.forEach(opt => {
+                const count = results[opt] || 0;
+                const pct = total ? Math.round((count / total) * 100) : 0;
+                const row = document.createElement('div');
+                row.className = 'result-row';
+                row.innerHTML = `<span>${opt}</span><div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div><span>${count} (${pct}%)</span>`;
+                container.appendChild(row);
+            });
+            document.getElementById('total').textContent = `${total} vote${total > 1 ? 's' : ''} au total`;
+        }
+
+        document.getElementById('submitBtn').addEventListener('click', () => {
+            const choice = document.querySelector('input[name="vote"]:checked');
+            if (!choice) { alert('Merci de choisir une réponse'); return; }
+            const results = loadResults();
+            results[choice.value] = (results[choice.value] || 0) + 1;
+            saveResults(results);
+            document.getElementById('poll').style.display = 'none';
+            document.getElementById('resultsView').style.display = 'block';
+            renderResults();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            localStorage.removeItem(STORAGE_KEY);
+            document.getElementById('poll').style.display = 'block';
+            document.getElementById('resultsView').style.display = 'none';
+            document.querySelectorAll('input[name="vote"]').forEach(i => i.checked = false);
+        });
+    </script>
 </body>
 
 </html>
