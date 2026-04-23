@@ -2,9 +2,9 @@ const { useState, useEffect, useMemo, useRef } = React;
 
 const STORAGE_KEY = 'poll_responses_v1';
 const OPTIONS = [
-  { id: 'amazing', emoji: '🤩', label: "J'adore", sub: "J'ai adoré", color: 'amazing' },
-  { id: 'meh',     emoji: '😍', label: 'I love Anthony', sub: "Mouais...",    color: 'meh' },
-  { id: 'useless', emoji: '😴', label: 'Inutile',     sub: "Perte de temps", color: 'useless' },
+  { id: 'amazing', emoji: '🤩', label: 'TOP',       sub: "J'ai adoré", color: 'amazing' },
+  { id: 'meh',     emoji: '😍', label: 'Trop bien', sub: "Mouais...",    color: 'meh' },
+  { id: 'useless', emoji: '😴', label: 'Bof',       sub: "Perte de temps", color: 'useless' },
 ];
 
 // ---------- storage helpers ----------
