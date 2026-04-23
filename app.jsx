@@ -2,11 +2,12 @@ const { useState, useEffect, useMemo, useRef } = React;
 
 const STORAGE_KEY = 'poll_responses_v1';
 const OPTIONS = [
-  { id: 'amazing', emoji: '🤩', label: "J'adore",        sub: "J'ai adoré",     color: 'amazing' },
-  { id: 'meh',     emoji: '😍', label: "I love Anthony", sub: "Team Anthony",   color: 'meh' },
-  { id: 'useless', emoji: '😴', label: 'Inutile',        sub: "Perte de temps", color: 'useless' },
+  { id: 'amazing', emoji: '🤩', label: "J'adore", sub: "J'ai adoré", color: 'amazing' },
+  { id: 'meh',     emoji: '😍', label: 'I love Anthony', sub: "Mouais...",    color: 'meh' },
+  { id: 'useless', emoji: '😴', label: 'Inutile',     sub: "Perte de temps", color: 'useless' },
 ];
 
+// ---------- storage helpers ----------
 const loadResponses = () => {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
   catch { return []; }
@@ -19,6 +20,7 @@ const saveResponse = (choice) => {
 };
 const clearResponses = () => { localStorage.removeItem(STORAGE_KEY); };
 
+// ---------- tweak protocol ----------
 function useTweaks() {
   const [t, setT] = useState(window.__TWEAKS);
   useEffect(() => {
@@ -38,19 +40,22 @@ function useTweaks() {
   return [t, update];
 }
 
+// ---------- Main app ----------
 function App() {
   const [tweaks, setTweak] = useTweaks();
-  const [view, setView] = useState('poll');
+  const [view, setView] = useState('poll'); // poll | thanks | admin
   const [chosen, setChosen] = useState(null);
   const [responses, setResponses] = useState(loadResponses());
   const [justVoted, setJustVoted] = useState(false);
 
+  // re-read on focus (if admin clears in another tab)
   useEffect(() => {
     const onFocus = () => setResponses(loadResponses());
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, []);
 
+  // Apply theme
   useEffect(() => {
     const themeMap = { sunny: '', neon: 'neon', pastel: 'pastel' };
     document.documentElement.setAttribute('data-theme', themeMap[tweaks.theme] || '');
@@ -76,6 +81,7 @@ function App() {
     setJustVoted(false);
   };
 
+  // Hidden admin toggle: press "A" to toggle admin
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'a' && (e.metaKey || e.ctrlKey)) {
@@ -115,6 +121,7 @@ function App() {
   );
 }
 
+// ---------- Top bar ----------
 function TopBar({ view, setView, count }) {
   return (
     <div style={{
@@ -165,6 +172,7 @@ function pillStyle(active) {
   };
 }
 
+// ---------- Poll View ----------
 function PollView({ onSubmit, chosen, justVoted, tweaks }) {
   return (
     <div style={{ maxWidth: 920, width: '100%', textAlign: 'center' }} data-screen-label="01 Sondage">
@@ -277,6 +285,7 @@ function OptionCard({ option, index, selected, dimmed, onClick, buttonStyle }) {
   );
 }
 
+// ---------- Thanks View (live stats) ----------
 function ThanksView({ chosen, responses, onRestart }) {
   const chosenOpt = OPTIONS.find(o => o.id === chosen);
   const stats = useMemo(() => computeStats(responses), [responses]);
@@ -412,6 +421,7 @@ function StatRow({ option, stat, highlight, total }) {
   );
 }
 
+// ---------- Admin View ----------
 function AdminView({ responses, onReset, onBack }) {
   const stats = useMemo(() => computeStats(responses), [responses]);
   const total = responses.length;
@@ -448,18 +458,21 @@ function AdminView({ responses, onReset, onBack }) {
         </div>
       </div>
 
+      {/* KPI row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 24 }}>
         <KPI label="Total réponses" value={total} sub={total === 0 ? 'Aucune réponse' : total === 1 ? '1 personne' : `${total} personnes`} />
-        <KPI label="Satisfaction" value={total > 0 ? `${Math.round(stats.amazing.count / total * 100)}%` : '—'} sub="ont adoré" color="amazing" />
-        <KPI label="Score net" value={total > 0 ? (nps > 0 ? `+${nps}` : `${nps}`) : '—'} sub="adoré − inutile" color={nps >= 0 ? 'amazing' : 'useless'} />
+        <KPI label="Satisfaction" value={total > 0 ? `${Math.round(stats.amazing.count / total * 100)}%` : '—'} sub="ont trouvé ça génial" color="amazing" />
+        <KPI label="Score net" value={total > 0 ? (nps > 0 ? `+${nps}` : `${nps}`) : '—'} sub="géniaux − inutiles" color={nps >= 0 ? 'amazing' : 'useless'} />
         <KPI label="Dernière réponse" value={total > 0 ? timeAgo(responses[responses.length - 1].ts) : '—'} sub={total > 0 ? new Date(responses[responses.length - 1].ts).toLocaleString('fr-FR') : ''} />
       </div>
 
+      {/* Two-column: bar chart + timeline */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 18 }}>
         <BarChart stats={stats} total={total} />
         <Timeline timeline={timeline} responses={responses} />
       </div>
 
+      {/* Responses table */}
       <div style={{
         marginTop: 18,
         background: 'var(--card)',
@@ -568,6 +581,7 @@ function BarChart({ stats, total }) {
         {OPTIONS.map(opt => {
           const s = stats[opt.id];
           const h = total > 0 ? (s.count / max) * 180 : 0;
+          const pct = total > 0 ? Math.round((s.count / total) * 100) : 0;
           return (
             <div key={opt.id} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
               <div className="mono" style={{ fontSize: 13, fontWeight: 500 }}>{s.count}</div>
@@ -603,12 +617,15 @@ function BarChart({ stats, total }) {
 }
 
 function Timeline({ timeline, responses }) {
+  // Show a sparkline-ish area of responses over last buckets
   const buckets = timeline.buckets;
   const max = Math.max(1, ...buckets.map(b => b.total));
   const W = 320, H = 140;
   const step = buckets.length > 1 ? W / (buckets.length - 1) : W;
 
+  // Stacked area per category
   const categories = ['amazing', 'meh', 'useless'];
+  const paths = {};
   let cumulative = buckets.map(() => 0);
   const points = {};
   categories.forEach(cat => {
@@ -640,9 +657,11 @@ function Timeline({ timeline, responses }) {
         </div>
       ) : (
         <svg viewBox={`0 0 ${W} ${H + 20}`} style={{ width: '100%', height: 'auto' }}>
+          {/* grid */}
           {[0.25, 0.5, 0.75].map(t => (
             <line key={t} x1={0} x2={W} y1={H * t} y2={H * t} stroke="var(--ink)" strokeOpacity="0.08" strokeDasharray="2 3" />
           ))}
+          {/* stacked areas */}
           {categories.map(cat => {
             const p = points[cat];
             if (p.length === 0) return null;
@@ -659,6 +678,7 @@ function Timeline({ timeline, responses }) {
               />
             );
           })}
+          {/* x labels */}
           {buckets.map((b, i) => (
             i % Math.max(1, Math.floor(buckets.length / 4)) === 0 && (
               <text key={i} x={i * step} y={H + 14} fontSize="9" fontFamily="Geist Mono" textAnchor="middle" fill="var(--ink-soft)">
@@ -683,6 +703,7 @@ function Timeline({ timeline, responses }) {
   );
 }
 
+// ---------- Tweaks panel ----------
 function TweaksPanel({ tweaks, setTweak }) {
   return (
     <div className="tweaks">
@@ -709,6 +730,7 @@ function TweaksPanel({ tweaks, setTweak }) {
   );
 }
 
+// ---------- helpers ----------
 function computeStats(responses) {
   const out = { amazing: { count: 0 }, meh: { count: 0 }, useless: { count: 0 } };
   responses.forEach(r => {
@@ -728,7 +750,7 @@ function computeTimeline(responses) {
 
   let bucketSize, count, fmt, label;
   if (span < oneHour) {
-    bucketSize = 5 * 60 * 1000;
+    bucketSize = 5 * 60 * 1000; // 5 min
     count = 12;
     label = 'Dernière heure';
     fmt = (d) => d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -768,5 +790,23 @@ function timeAgo(ts) {
   if (s < 86400) return `il y a ${Math.floor(s / 3600)} h`;
   return `il y a ${Math.floor(s / 86400)} j`;
 }
+
+// ---------- Seed some demo data if empty (for first-view only) ----------
+(function seedDemoData() {
+  const existing = loadResponses();
+  if (existing.length > 0) return;
+  const now = Date.now();
+  const demo = [
+    { id: 'd1', choice: 'amazing', ts: now - 1000 * 60 * 45 },
+    { id: 'd2', choice: 'amazing', ts: now - 1000 * 60 * 32 },
+    { id: 'd3', choice: 'meh', ts: now - 1000 * 60 * 28 },
+    { id: 'd4', choice: 'amazing', ts: now - 1000 * 60 * 21 },
+    { id: 'd5', choice: 'useless', ts: now - 1000 * 60 * 15 },
+    { id: 'd6', choice: 'amazing', ts: now - 1000 * 60 * 12 },
+    { id: 'd7', choice: 'meh', ts: now - 1000 * 60 * 7 },
+    { id: 'd8', choice: 'amazing', ts: now - 1000 * 60 * 3 },
+  ];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(demo));
+})();
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
